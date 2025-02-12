@@ -1,0 +1,20 @@
+{
+  "name": "my-backend-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "docxtemplater": "^3.59.0",
+    "express": "^4.21.2",
+    "jimp": "^1.6.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-lib": "^1.17.1",
+    "xlsx": "^0.18.5"
+  }
+}
