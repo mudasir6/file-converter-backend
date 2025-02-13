@@ -1,0 +1,13 @@
+# Ignore system files and directories
+AppData/
+Documents/
+*.lock
+*.tmp
+*.log
+
+# Node modules (if present)
+node_modules/
+
+# Logs
+npm-debug.log
+yarn-error.log
