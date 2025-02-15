@@ -1,88 +1,68 @@
 const express = require('express');
 const multer = require('multer');
-const cors = require('cors'); // Added CORS
-const path = require('path');
-const { PDFDocument } = require('pdf-lib');
-const XLSX = require('xlsx');
-const Jimp = require('jimp');
-const Docxtemplater = require('docxtemplater');
+const exceljs = require('exceljs');
 const fs = require('fs');
+const path = require('path');
+const { PDFDocument } = require('pdf-lib'); // Handle PDFs
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: 'uploads/' }); // Set up file uploads
 
-// Enable CORS
-app.use(cors());
+// Middleware to handle JSON requests
+app.use(express.json());
 
-// Root route to fix 404 error
-app.get("/", (req, res) => {
-    res.send("Backend is running! Use /convert to process files.");
-});
-
-// File conversion endpoint
-app.post('/convert', upload.single('file'), async (req, res) => {
-    const conversionType = req.body.conversionType;
-    const filePath = req.file.path;
-
+// Example route for PDF to Excel conversion
+app.post('/convert-pdf-to-excel', upload.single('file'), async (req, res) => {
     try {
-        let outputFilePath;
+        const filePath = req.file.path;
+        const workbook = new exceljs.Workbook();
+        const worksheet = workbook.addWorksheet('Converted Data');
 
-        switch (conversionType) {
-            case 'pdfToExcel':
-                outputFilePath = await convertPdfToExcel(filePath);
-                break;
-            case 'excelToPdf':
-                outputFilePath = await convertExcelToPdf(filePath);
-                break;
-            case 'pdfToWord':
-                outputFilePath = await convertPdfToWord(filePath);
-                break;
-            case 'wordToJpg':
-                outputFilePath = await convertWordToJpg(filePath);
-                break;
-            case 'wordToExcel':
-                outputFilePath = await convertWordToExcel(filePath);
-                break;
-            case 'jpgToExcel':
-                outputFilePath = await convertJpgToExcel(filePath);
-                break;
-            default:
-                throw new Error('Invalid conversion type');
-        }
+        // Dummy data as a placeholder for conversion logic
+        worksheet.columns = [
+            { header: 'Name', key: 'name', width: 30 },
+            { header: 'Age', key: 'age', width: 10 }
+        ];
+        worksheet.addRow({ name: 'John Doe', age: 30 });
 
-        res.download(outputFilePath, `converted_file.${getFileExtension(conversionType)}`, (err) => {
-            if (err) console.error('Error sending file:', err);
-            // Clean up files
-            fs.unlinkSync(filePath);
-            fs.unlinkSync(outputFilePath);
+        const excelFilePath = path.join(__dirname, 'output', 'converted-file.xlsx');
+        await workbook.xlsx.writeFile(excelFilePath);
+
+        res.download(excelFilePath, (err) => {
+            if (err) throw err;
+            fs.unlinkSync(filePath); // Delete uploaded PDF
         });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).send('Conversion failed');
+        res.status(500).send('Error converting PDF to Excel');
     }
 });
 
-// Conversion functions (add your logic here)
-async function convertPdfToExcel(filePath) { return 'converted.xlsx'; }
-async function convertExcelToPdf(filePath) { return 'converted.pdf'; }
-async function convertPdfToWord(filePath) { return 'converted.docx'; }
-async function convertWordToJpg(filePath) { return 'converted.jpg'; }
-async function convertWordToExcel(filePath) { return 'converted.xlsx'; }
-async function convertJpgToExcel(filePath) { return 'converted.xlsx'; }
+// Example route for Excel to PDF conversion
+app.post('/convert-excel-to-pdf', upload.single('file'), async (req, res) => {
+    try {
+        const filePath = req.file.path;
+        const workbook = new exceljs.Workbook();
+        await workbook.xlsx.readFile(filePath);
 
-function getFileExtension(conversionType) {
-    const extensions = {
-        pdfToExcel: 'xlsx',
-        excelToPdf: 'pdf',
-        pdfToWord: 'docx',
-        wordToJpg: 'jpg',
-        wordToExcel: 'xlsx',
-        jpgToExcel: 'xlsx'
-    };
-    return extensions[conversionType] || 'txt';
-}
+        const pdfDoc = await PDFDocument.create();
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+        const page = pdfDoc.addPage([600, 400]);
+        page.drawText('Excel to PDF Conversion Demo');
+
+        const pdfFilePath = path.join(__dirname, 'output', 'converted-file.pdf');
+        fs.writeFileSync(pdfFilePath, await pdfDoc.save());
+
+        res.download(pdfFilePath, (err) => {
+            if (err) throw err;
+            fs.unlinkSync(filePath); // Delete uploaded Excel
+        });
+    } catch (error) {
+        res.status(500).send('Error converting Excel to PDF');
+    }
+});
+
+// Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
